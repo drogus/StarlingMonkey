@@ -21,7 +21,7 @@ api::Engine* initialize(std::vector<std::string_view> args) {
   return new api::Engine(config_parser.take());
 }
 
-static api::Engine *ENGINE = nullptr;
+extern "C" api::Engine *ENGINE = nullptr;
 
 __attribute__((weak))
 int main(int argc, const char *argv[]) {

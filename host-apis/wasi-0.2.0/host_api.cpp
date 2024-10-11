@@ -7,6 +7,12 @@
 #include <set>
 #endif
 
+#include <js/CompilationAndEvaluation.h>
+#include <js/MapAndSet.h>
+#include <js/Value.h>
+#include <js/Modules.h>
+#include <jsfriendapi.h>
+
 using host_api::HostString;
 using std::optional;
 using std::string_view;
@@ -1198,9 +1204,9 @@ host_api::Result<host_api::Void> host_api::HttpOutgoingResponse::send() {
 
   return {};
 }
-extern api::Engine *ENGINE;
-extern JS::PersistentRootedObject moduleRegistry;
-extern JS::PersistentRootedObject builtinModules;
+extern "C" api::Engine *ENGINE;
+//extern "C" JS::PersistentRootedObject moduleRegistry;
+//extern "C" JS::PersistentRootedObject builtinModules;
 extern "C" bool init_from_environment();
 
 void exports_wasi_http_incoming_handler(exports_wasi_http_incoming_request request_handle,
@@ -1223,8 +1229,9 @@ void exports_wasi_http_incoming_handler(exports_wasi_http_incoming_request reque
 
 void bindings_get_config(bindings_config_t *ret) {
   if (!ENGINE) {
-    init_from_environment();
+   init_from_environment();
   }
+  MOZ_ASSERT(ENGINE);
   
   //RootedValue foo(ENGINE->cx());
   //JS_GetProperty(ENGINE->cx(), ENGINE->cx(), "foo", &foo);
@@ -1236,7 +1243,24 @@ void bindings_get_config(bindings_config_t *ret) {
     .allocated_vus = 1,
     .graceful_shutdown_timeout = 1000
   };
-  arrival_rate_config.allocated_vus = foo.toInt32();
+
+  auto cx = ENGINE->cx();
+  // JS::RootedObject module(cx, &ENGINE->script_value().toObject());
+  // JS::RootedObject ns(cx, JS::GetModuleNamespace(cx, module));
+  // JS::RootedValue val(cx);
+  // JS_GetProperty(cx, ns, "foo", &val);
+  // JS::RootedValue rval(cx);
+  // JS_CallFunctionValue(cx, ENGINE->global(), val,  HandleValueArray::empty(), &rval);
+  JS::RootedObject ns(cx, &ENGINE->script_value().toObject());
+  JS::RootedValue val1(cx);
+  JS_GetProperty(cx, ns, "foo", &val1);
+  JS::RootedValue rval1(cx);
+  JS_CallFunctionValue(cx, ENGINE->global(), val1,  HandleValueArray::empty(), &rval1);
+  RootedValue allocated_vus(cx);
+  RootedObject rval_obj(cx, &rval1.toObject());
+  JS_GetProperty(cx, rval_obj, "allocatedVUs", &allocated_vus);
+  
+  arrival_rate_config.allocated_vus = allocated_vus.toInt32();
   //RootedValue resolved_path_val(ENGINE->cx(), "foo.js");
   //RootedValue module_val(ENGINE->cx());
   //JS::MapGet(ENGINE->cx(), moduleRegistry, resolved_path_val, &module_val);
