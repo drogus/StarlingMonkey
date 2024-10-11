@@ -1,6 +1,6 @@
 #include "host_api.h"
 #include "bindings/bindings.h"
-
+//#include "runtime/allocator.h"
 #include <exports.h>
 #include <list>
 #ifdef DEBUG
@@ -1198,7 +1198,9 @@ host_api::Result<host_api::Void> host_api::HttpOutgoingResponse::send() {
 
   return {};
 }
-
+extern api::Engine *ENGINE;
+extern JS::PersistentRootedObject moduleRegistry;
+extern JS::PersistentRootedObject builtinModules;
 extern "C" bool init_from_environment();
 
 void exports_wasi_http_incoming_handler(exports_wasi_http_incoming_request request_handle,
@@ -1215,5 +1217,35 @@ void exports_wasi_http_incoming_handler(exports_wasi_http_incoming_request reque
   auto state = new WASIHandle<host_api::HttpIncomingRequest>(request_handle);
   auto *request = new host_api::HttpIncomingRequest(std::unique_ptr<host_api::HandleState>(state));
   auto res = REQUEST_HANDLER(request);
+
   MOZ_RELEASE_ASSERT(res);
+}
+
+void bindings_get_config(bindings_config_t *ret) {
+  if (!ENGINE) {
+    init_from_environment();
+  }
+  
+  //RootedValue foo(ENGINE->cx());
+  //JS_GetProperty(ENGINE->cx(), ENGINE->cx(), "foo", &foo);
+
+  local_bindings_types_constant_arrival_rate_config_t arrival_rate_config = {
+    .duration = 1000,
+    .rate = 1,
+    .time_unit = 1,
+    .allocated_vus = 1,
+    .graceful_shutdown_timeout = 1000
+  };
+  arrival_rate_config.allocated_vus = foo.toInt32();
+  //RootedValue resolved_path_val(ENGINE->cx(), "foo.js");
+  //RootedValue module_val(ENGINE->cx());
+  //JS::MapGet(ENGINE->cx(), moduleRegistry, resolved_path_val, &module_val);
+  //JSObject *module = &module_val.toObject();
+  
+  ret->tag = 0;
+  ret->val.constant_arrival_rate = arrival_rate_config;
+}
+
+void bindings_run_scenario() {
+
 }

@@ -1,6 +1,34 @@
 package local:bindings;
 
+interface types {
+    /// Represents a duration in nanoseconds
+    type duration = u64;
+
+    /// Configuration for constant arrival rate
+    record constant-arrival-rate-config {
+        duration: duration,
+        rate: u64,
+        time-unit: duration,
+        allocated-vus: u64,
+        graceful-shutdown-timeout: duration,
+    }
+
+    /// Configuration variants
+    variant config {
+        constant-arrival-rate(constant-arrival-rate-config),
+    }
+}
+
+world crows {
+    use types.{config};
+
+    export get-config: func() -> config;
+    export run-scenario: func();
+}
+
 world bindings {
   include wasi:cli/command@0.2.0;
   include wasi:http/proxy@0.2.0;
+  include crows;
 }
+
